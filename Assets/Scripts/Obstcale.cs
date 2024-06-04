@@ -6,7 +6,7 @@
     {  
 
         public ObstacleGenerator obstacleGenerator;
-        private int coinCount = 0;
+
 
 
         void Start()
@@ -16,7 +16,7 @@
 
         void Update()
         {
-            transform.Translate(Vector2.left * obstacleGenerator.currentSpeed * Time.deltaTime);
+            transform.Translate(Vector2.left * obstacleGenerator.currentSpeed * Time.deltaTime);    
         }
 
 
@@ -35,12 +35,7 @@
                 Destroy(this.gameObject);
             }
 
-            if (collision.gameObject.CompareTag("Coin"))
-            {
-                coinCount++;
-                Destroy(collision.gameObject);
-                Debug.Log("Coins Collected: " + coinCount);
-            }
+           
 
 
         }

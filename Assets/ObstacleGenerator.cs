@@ -4,8 +4,9 @@ using UnityEngine;
 
 public class ObstacleGenerator : MonoBehaviour
 {
-    public GameObject obstacle;
-    public GameObject coin; 
+    public List<GameObject> obstacles;
+    public GameObject coin;
+    public GameObject jumpBoost; 
 
     public float minSpeed;
     public float maxSpeed;
@@ -16,37 +17,55 @@ public class ObstacleGenerator : MonoBehaviour
     void Start()
     {
         currentSpeed = minSpeed;
-        GenerateObstacle(); 
+        GenerateObstacle();
     }
 
     public void GenerateObstacleWithGap()
     {
         float randomGap = Random.Range(0.01f, 2f);
-        Invoke("GenerateObstacleOrCoin", randomGap); 
+        Invoke("GenerateObstacleOrCoin", randomGap);
     }
 
-    public void GenerateObstacleOrCoin() 
+    public void GenerateObstacleOrCoin()
     {
-        if (Random.value > 0.5) 
+        float randomValue = Random.value;
+        if (randomValue > 0.66)
         {
             GenerateObstacle();
         }
-        else 
+        else if (randomValue > 0.33)
         {
             GenerateCoin();
+        }
+        else
+        {
+            GenerateJumpBoost(); 
         }
     }
 
     public void GenerateObstacle()
     {
-        GameObject obstacleGameObject = Instantiate(obstacle, transform.position, transform.rotation);
-        obstacleGameObject.GetComponent<Obstcale>().obstacleGenerator = this; 
+        if (obstacles.Count == 0)
+        {
+            Debug.LogError("No obstacles set in the obstacle list");
+            return;
+        }
+
+        int randomIndex = Random.Range(0, obstacles.Count);
+        GameObject selectedObstacle = obstacles[randomIndex];
+
+        GameObject obstacleGameObject = Instantiate(selectedObstacle, transform.position, transform.rotation);
+        obstacleGameObject.GetComponent<Obstcale>().obstacleGenerator = this;
     }
 
-    public void GenerateCoin() 
+    public void GenerateCoin()
     {
         GameObject coinObject = Instantiate(coin, transform.position, transform.rotation);
-        
+    }
+
+    public void GenerateJumpBoost()
+    {
+        GameObject jumpBoostObject = Instantiate(jumpBoost, transform.position, transform.rotation);
     }
 
     void Update()

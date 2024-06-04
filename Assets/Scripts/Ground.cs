@@ -1,10 +1,10 @@
-using System.Collections;
+/*using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Ground : MonoBehaviour
 {
-    Player player;
+    PlayerScript player;
     public float groundHeight;
     public float groundRight;
     public float screenRight;
@@ -17,7 +17,7 @@ public class Ground : MonoBehaviour
 
     private void Awake()
     {
-        player = GameObject.Find("Player").GetComponent<Player>();
+        player = GameObject.Find("Player").GetComponent<PlayerScript>();
         bcollider = GetComponent<BoxCollider2D>();
         groundHeight = transform.position.y + (bcollider.size.y / 2);
 
@@ -111,3 +111,4 @@ public class Ground : MonoBehaviour
         }
     }
 }
+*/
