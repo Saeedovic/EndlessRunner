@@ -11,6 +11,7 @@ TagManager:
   - Middle
   - Coin
   - JumpBoost
+  - 'JumpBoost '
   layers:
   - Default
   - TransparentFX
