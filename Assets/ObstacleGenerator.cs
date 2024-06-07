@@ -23,6 +23,7 @@ public class ObstacleGenerator : MonoBehaviour
 
     public float minYPosition = 0.5f;
     public float minGapBetweenObstacles = 5f;
+    private List<Vector3> recentPositions = new List<Vector3>();
 
     void Awake()
     {
@@ -33,13 +34,11 @@ public class ObstacleGenerator : MonoBehaviour
     {
         if (!uiController.ready) return;
 
-
         if (doneReady == true)
         {
             currentSpeed = minSpeed;
-            GenerateObstacle();
+            GenerateObstaclePattern();
             doneReady = false;
-
         }
 
         if (doneReady == false)
@@ -54,7 +53,7 @@ public class ObstacleGenerator : MonoBehaviour
 
             if (obstacleCooldown <= 0)
             {
-                GenerateObstacle();
+                GenerateObstaclePattern();
                 obstacleCooldown = generationInterval + Random.Range(1f, 3f);
             }
 
@@ -63,8 +62,11 @@ public class ObstacleGenerator : MonoBehaviour
                 GenerateRandomItem();
                 coinCooldown = generationInterval + Random.Range(1f, 3f);
             }
-
         }
+
+        // Clean up the recent positions list to keep it from growing indefinitely
+        // Remove positions older than 5 seconds
+        recentPositions.RemoveAll(pos => (Time.time - pos.z) > 5f);
     }
 
     public void GenerateRandomItem()
@@ -80,13 +82,32 @@ public class ObstacleGenerator : MonoBehaviour
         }
     }
 
-    public void GenerateObstacle()
+    public void GenerateObstaclePattern()
     {
         if (obstacles.Count == 0)
         {
             Debug.LogError("No obstacles set in the obstacle list");
             return;
         }
+
+        int pattern = Random.Range(0, 3);
+        switch (pattern)
+        {
+            case 0:
+                GenerateSingleObstacle();
+                break;
+            case 1:
+                GenerateStackedObstacles();
+                break;
+            case 2:
+                GenerateSideBySideObstacles();
+                break;
+        }
+    }
+
+    public void GenerateSingleObstacle()
+    {
+        Debug.Log("Im single obstacles");
 
         int randomIndex = Random.Range(0, obstacles.Count);
         GameObject selectedObstacle = obstacles[randomIndex];
@@ -96,13 +117,54 @@ public class ObstacleGenerator : MonoBehaviour
         {
             GameObject obstacleGameObject = Instantiate(selectedObstacle, spawnPosition, transform.rotation);
             obstacleGameObject.GetComponent<Obstcale>().obstacleGenerator = this;
+            recentPositions.Add(new Vector3(spawnPosition.x, spawnPosition.y, Time.time));
+        }
+    }
+
+    public void GenerateStackedObstacles()
+    {
+        Debug.Log("Im two top obstacles");
+
+        int randomIndex = Random.Range(0, obstacles.Count);
+        GameObject selectedObstacle = obstacles[randomIndex];
+
+        Vector3 basePosition = transform.position;
+        for (int i = 0; i < 3; i++)
+        {
+            Vector3 spawnPosition = basePosition + new Vector3(0, i * 2f, 0);
+            if (IsSpaceAvailable(spawnPosition, minGapBetweenObstacles))
+            {
+                GameObject obstacleGameObject = Instantiate(selectedObstacle, spawnPosition, transform.rotation);
+                obstacleGameObject.GetComponent<Obstcale>().obstacleGenerator = this;
+                recentPositions.Add(new Vector3(spawnPosition.x, spawnPosition.y, Time.time));
+            }
+        }
+    }
+
+    public void GenerateSideBySideObstacles()
+    {
+        Debug.Log("Im side to side obstacles");
+
+        int randomIndex = Random.Range(0, obstacles.Count);
+        GameObject selectedObstacle = obstacles[randomIndex];
+
+        Vector3 basePosition = transform.position;
+        for (int i = 0; i < 3; i++)
+        {
+            Vector3 spawnPosition = basePosition + new Vector3(i * 2f, 0, 0);
+            if (IsSpaceAvailable(spawnPosition, minGapBetweenObstacles))
+            {
+                GameObject obstacleGameObject = Instantiate(selectedObstacle, spawnPosition, transform.rotation);
+                obstacleGameObject.GetComponent<Obstcale>().obstacleGenerator = this;
+                recentPositions.Add(new Vector3(spawnPosition.x, spawnPosition.y, Time.time));
+            }
         }
     }
 
     public void GenerateCoinPattern()
     {
         Vector3 startPos = transform.position;
-        if (IsSpaceAvailable(startPos))
+        if (IsItemSpaceAvailable(startPos))
         {
             int pattern = Random.Range(0, 3);
             switch (pattern)
@@ -126,9 +188,10 @@ public class ObstacleGenerator : MonoBehaviour
         for (int i = 0; i < 5; i++)
         {
             Vector3 spawnPosition = startPos + new Vector3(i * 1.5f, 0, 0);
-            if (IsSpaceAvailable(spawnPosition))
+            if (IsItemSpaceAvailable(spawnPosition))
             {
                 Instantiate(coin, spawnPosition, Quaternion.identity);
+                recentPositions.Add(new Vector3(spawnPosition.x, spawnPosition.y, Time.time));
             }
         }
     }
@@ -143,9 +206,10 @@ public class ObstacleGenerator : MonoBehaviour
             float x = Mathf.Cos(angle) * arcRadius;
             float y = Mathf.Sin(angle) * arcRadius;
             Vector3 spawnPosition = startPos + new Vector3(x, y, 0);
-            if (IsSpaceAvailable(spawnPosition))
+            if (IsItemSpaceAvailable(spawnPosition))
             {
                 Instantiate(coin, spawnPosition, Quaternion.identity);
+                recentPositions.Add(new Vector3(spawnPosition.x, spawnPosition.y, Time.time));
             }
         }
     }
@@ -157,9 +221,10 @@ public class ObstacleGenerator : MonoBehaviour
         {
             float yOffset = (i % 2 == 0) ? 1.5f : -1.5f;
             Vector3 spawnPosition = startPos + new Vector3(i * 1.5f, yOffset, 0);
-            if (IsSpaceAvailable(spawnPosition))
+            if (IsItemSpaceAvailable(spawnPosition))
             {
                 Instantiate(coin, spawnPosition, Quaternion.identity);
+                recentPositions.Add(new Vector3(spawnPosition.x, spawnPosition.y, Time.time));
             }
         }
     }
@@ -167,24 +232,29 @@ public class ObstacleGenerator : MonoBehaviour
     public void GenerateJumpBoost()
     {
         Vector3 spawnPosition = transform.position;
-        if (IsSpaceAvailable(spawnPosition))
+        if (IsItemSpaceAvailable(spawnPosition))
         {
             Instantiate(jumpBoost, spawnPosition, transform.rotation);
+            recentPositions.Add(new Vector3(spawnPosition.x, spawnPosition.y, Time.time));
         }
     }
 
     private bool IsSpaceAvailable(Vector3 position, float minGap = 0f)
     {
+        Debug.Log("Checking space availability at position: " + position);
+
         if (position.y < minYPosition)
         {
+            Debug.Log("Position too low: " + position);
             return false;
         }
 
         Collider2D[] colliders = Physics2D.OverlapCircleAll(position, 0.5f);
         foreach (Collider2D collider in colliders)
         {
-            if (collider.CompareTag("Obstacle") || collider.CompareTag("Coin") || collider.CompareTag("JumpBoost"))
+            if (collider.CompareTag("Obstacle"))
             {
+                Debug.Log("Position occupied by an obstacle: " + collider.tag);
                 return false;
             }
         }
@@ -196,8 +266,65 @@ public class ObstacleGenerator : MonoBehaviour
             {
                 if (nearbyCollider.CompareTag("Obstacle"))
                 {
+                    Debug.Log("Nearby obstacle found at: " + nearbyCollider.transform.position);
                     return false;
                 }
+            }
+        }
+
+        // Check against recent positions
+        foreach (var recentPos in recentPositions)
+        {
+            if (Vector3.Distance(position, recentPos) < minGap)
+            {
+                Debug.Log("Position too close to a recent obstacle or item: " + recentPos);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private bool IsItemSpaceAvailable(Vector3 position, float minGap = 0f)
+    {
+        Debug.Log("Checking item space availability at position: " + position);
+
+        if (position.y < minYPosition)
+        {
+            Debug.Log("Position too low: " + position);
+            return false;
+        }
+
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(position, 0.5f);
+        foreach (Collider2D collider in colliders)
+        {
+            if (collider.CompareTag("Coin") || collider.CompareTag("JumpBoost") || collider.CompareTag("Obstacle"))
+            {
+                Debug.Log("Position occupied by an item or obstacle: " + collider.tag);
+                return false;
+            }
+        }
+
+        if (minGap > 0f)
+        {
+            Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(position, minGap);
+            foreach (Collider2D nearbyCollider in nearbyColliders)
+            {
+                if (nearbyCollider.CompareTag("Coin") || nearbyCollider.CompareTag("JumpBoost") || nearbyCollider.CompareTag("Obstacle"))
+                {
+                    Debug.Log("Nearby item or obstacle found at: " + nearbyCollider.transform.position);
+                    return false;
+                }
+            }
+        }
+
+        // Check against recent positions
+        foreach (var recentPos in recentPositions)
+        {
+            if (Vector3.Distance(position, recentPos) < minGap)
+            {
+                Debug.Log("Position too close to a recent obstacle or item: " + recentPos);
+                return false;
             }
         }
 
